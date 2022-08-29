@@ -1,0 +1,46 @@
+version: '3.9'
+services:
+  conference-db:
+    build:
+      context: ./conference-mssql-db/
+      dockerfile: ./Dockerfile
+    ports:
+      - '1633:1433'
+    networks: 
+      - "conference-net"
+  conference-api:
+    build:
+      context: ../App/Services/conference-dotnet-api/
+      dockerfile: ../../../Docker/conference-api/Dockerfile
+    environment:
+      - "ConnectionStrings__conference-db=Server=conference-db,1433;Database=conference;User Id=sa;Password=GraphQL@Workshop;"
+    ports:
+      - '5000:80'
+    networks: 
+      - "conference-net"
+    depends_on:
+      conference-db:
+        condition: service_started
+  conference-sqlpad:
+    image: sqlpad/sqlpad:latest
+    environment:
+      - "SQLPAD_ADMIN=admin@admin.org"
+      - "SQLPAD_ADMIN_PASSWORD=GraphQL@Workshop"
+      - "SQLPAD_AUTH_DISABLED=True"
+      - "SQLPAD_AUTH_DISABLED_DEFAULT_ROLE=admin"
+      - "SQLPAD_CONNECTIONS__conference-db__name=Conference DB"
+      - "SQLPAD_CONNECTIONS__conference-db__driver=sqlserver"
+      - "SQLPAD_CONNECTIONS__conference-db__host=conference-db"
+      - "SQLPAD_CONNECTIONS__conference-db__port=1433"
+      - "SQLPAD_CONNECTIONS__conference-db__database=conference"
+      - "SQLPAD_CONNECTIONS__conference-db__username=sa"
+      - "SQLPAD_CONNECTIONS__conference-db__password=GraphQL@Workshop"
+    links:
+      - conference-db
+    ports:
+      - "5001:3000"
+    networks: 
+      - "conference-net"
+networks:
+  conference-net:
+    driver: bridge
